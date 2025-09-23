@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["chrome", "webextension-polyfill"],
+    "lib": ["dom", "dom.iterable", "ES2023"],
+    "jsx": "react-jsx",
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["dist/**/*"]
+}

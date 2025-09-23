@@ -6,6 +6,7 @@ import {
   PropsWithChildren,
   useContext,
   useMemo,
+  useEffect,
 } from "react";
 
 import { ToolUIApi, ToolUIState, ToolUIMeta } from "../../client/types/ToolUI";
@@ -44,6 +45,7 @@ import {
   ThreadListClientState,
 } from "../../client/types/ThreadList";
 import { ThreadViewportProvider } from "../providers/ThreadViewportProvider";
+import { DevToolsHooks } from "../../devtools/DevToolsHooks";
 
 export type AssistantState = {
   readonly threads: ThreadListClientState;
@@ -282,10 +284,19 @@ const extendApi = (
 };
 
 export const AssistantProvider: FC<
-  PropsWithChildren<{ api: Partial<AssistantApi> }>
-> = ({ api: api2, children }) => {
+  PropsWithChildren<{ api: Partial<AssistantApi>; devToolsVisible?: boolean }>
+> = ({ api: api2, children, devToolsVisible = true }) => {
   const api = useAssistantApi();
   const extendedApi = useMemo(() => extendApi(api, api2), [api, api2]);
+
+  if (devToolsVisible) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+      if (!api2.subscribe) return undefined;
+      console.log("[Assistant UI] Registering with DevTools", api2);
+      return DevToolsHooks.getInstance().register(api2);
+    }, [api2]);
+  }
 
   return (
     <AssistantApiContext.Provider value={extendedApi}>

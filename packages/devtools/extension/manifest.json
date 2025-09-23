@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Assistant UI DevTools",
+  "version": "0.1.0",
+  "description": "Development tools for Assistant UI React components",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "devtools_page": "devtools.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Assistant UI DevTools"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
