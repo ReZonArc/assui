@@ -2,14 +2,17 @@
 
 import {
   AssistantRuntimeProvider,
-  ThreadMessageLike,
-  unstable_convertExternalMessages,
   AssistantTransportConnectionMetadata,
   makeAssistantTool,
 } from "@assistant-ui/react";
+import {
+  convertLangChainMessages,
+  LangChainMessage,
+} from "@assistant-ui/react-langgraph";
 import { useAssistantTransportRuntime } from "@assistant-ui/react";
 import React, { ReactNode } from "react";
 import { z } from "zod";
+import { createMessageConverter } from "../../../packages/react/dist/legacy-runtime/runtime-cores/external-store/createMessageConverter";
 
 // Frontend tool with execute function
 const WeatherTool = makeAssistantTool({
@@ -58,48 +61,25 @@ type MyRuntimeProviderProps = {
   children: ReactNode;
 };
 
-type TextPart = {
-  readonly type: "text";
-  readonly text: string;
-};
-
-type ToolCallPart = {
-  readonly type: "tool-call";
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly argsText: string;
-  readonly result: any;
-};
-
 type State = {
-  messages: {
-    role: "user" | "assistant";
-    parts: (TextPart | ToolCallPart)[];
-  }[];
+  messages: LangChainMessage[];
 };
 
-const fromThreadMessageLike = (message: ThreadMessageLike, id: string) => {
-  return unstable_convertExternalMessages(
-    [message],
-    (m) => ({
-      ...m,
-      id,
-    }),
-    false,
-  )[0];
-};
+const LangChainMessageConverter = createMessageConverter(
+  convertLangChainMessages,
+);
 
 const converter = (
   state: State,
   connectionMetadata: AssistantTransportConnectionMetadata,
 ) => {
   const optimisticStateMessages = connectionMetadata.pendingCommands.map(
-    (c) => {
+    (c): LangChainMessage[] => {
       if (c.type === "add-message") {
         return [
           {
-            role: "user" as const,
-            parts: [
+            type: "human" as const,
+            content: [
               {
                 type: "text" as const,
                 text: c.message.parts
@@ -117,29 +97,7 @@ const converter = (
   const messages = [...state.messages, ...optimisticStateMessages.flat()];
 
   return {
-    messages:
-      messages.map((m, idx) =>
-        fromThreadMessageLike(
-          {
-            role: m.role,
-            content: m.parts.map((p) => {
-              switch (p.type) {
-                case "text":
-                  return { type: "text", text: p.text };
-                case "tool-call":
-                  return {
-                    type: "tool-call",
-                    toolCallId: p.toolCallId,
-                    toolName: p.toolName,
-                    argsText: p.argsText,
-                    result: p.result,
-                  };
-              }
-            }),
-          },
-          idx.toString(),
-        ),
-      ) || [],
+    messages: LangChainMessageConverter.toThreadMessages(messages),
     isRunning: connectionMetadata.isSending || false,
   };
 };
