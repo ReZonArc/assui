@@ -1,0 +1,174 @@
+---
+title: Featherless AI
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Overview
+
+Integration with Featherless AI using the Vercel AI SDK v5. Featherless AI provides an OpenAI-compatible API, making it easy to integrate with assistant-ui through the AI SDK's OpenAI provider.
+
+## Getting Started
+
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+<Steps>
+  <Step>
+  ### Create a Next.JS project
+
+```sh
+npx create-next-app@latest my-app
+cd my-app
+```
+
+  </Step>
+  <Step>
+
+### Install AI SDK v5 and `@assistant-ui/react`
+
+```sh npm2yarn
+npm install @assistant-ui/react @assistant-ui/react-ai-sdk ai @ai-sdk/openai
+```
+
+  </Step>
+  <Step>
+
+### Setup environment variables
+
+Create a `.env.local` file with your Featherless API credentials:
+
+```
+FEATHERLESS_API_KEY=your-featherless-api-key-here
+FEATHERLESS_BASE_URL=https://api.featherless.ai/v1
+```
+
+  </Step>
+  <Step>
+
+### Setup a backend route under `/api/chat`
+
+`@/app/api/chat/route.ts`
+
+```tsx
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamText, UIMessage, convertToModelMessages } from "ai";
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+// Initialize Featherless using OpenAI-compatible API
+const featherless = createOpenAI({
+  apiKey: process.env["FEATHERLESS_API_KEY"] || "",
+  baseURL: process.env["FEATHERLESS_BASE_URL"] || "https://api.featherless.ai/v1",
+});
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: featherless("gpt-3.5-turbo"), // Adjust model based on Featherless offerings
+    messages: convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+  </Step>
+  <Step>
+
+### Setup the frontend
+
+`@/app/page.tsx`
+
+```tsx
+"use client";
+
+import { Thread } from "@/components/assistant-ui/thread";
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
+
+export default function Home() {
+  const runtime = useChatRuntime();
+
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>
+      <div className="h-full">
+        <Thread />
+      </div>
+    </AssistantRuntimeProvider>
+  );
+}
+```
+
+  </Step>
+</Steps>
+
+## Configuration Options
+
+### Provider Configuration
+
+Featherless AI is configured using the OpenAI provider with custom settings:
+
+```typescript
+import { createOpenAI } from "@ai-sdk/openai";
+
+const featherless = createOpenAI({
+  apiKey: process.env["FEATHERLESS_API_KEY"] || "",
+  baseURL: process.env["FEATHERLESS_BASE_URL"] || "https://api.featherless.ai/v1",
+});
+```
+
+### Environment Variables
+
+| Variable | Description | Required |
+| -------- | ----------- | -------- |
+| `FEATHERLESS_API_KEY` | Your Featherless API key | Yes |
+| `FEATHERLESS_BASE_URL` | Base URL for Featherless API | No (defaults to https://api.featherless.ai/v1) |
+
+### Model Selection
+
+Update the model name based on the available models in your Featherless account:
+
+```typescript
+const result = streamText({
+  model: featherless("gpt-3.5-turbo"), // Replace with your preferred model
+  messages: convertToModelMessages(messages),
+});
+```
+
+<Callout type="info">
+  Check your Featherless dashboard for the list of available models and their exact names.
+</Callout>
+
+## Features
+
+- **Streaming Support**: Full streaming support through AI SDK v5
+- **Tool Calling**: Supports tool/function calling if enabled by Featherless
+- **OpenAI Compatibility**: Uses standard OpenAI API format
+- **Custom Models**: Support for Featherless-specific models
+
+## Example
+
+For a complete working example, check out the [Featherless example](https://github.com/assistant-ui/assistant-ui/tree/main/examples/with-featherless) in our repository.
+
+## Troubleshooting
+
+### Authentication Issues
+
+- Verify your `FEATHERLESS_API_KEY` is correct
+- Ensure the API key has the necessary permissions
+
+### Model Not Found
+
+- Check that the model name matches exactly what's available in your Featherless account
+- Verify your account has access to the specified model
+
+### API Errors
+
+- Confirm the `FEATHERLESS_BASE_URL` is correct
+- Check Featherless service status if you encounter connectivity issues
+
+<Callout type="warning">
+  Since Featherless uses an OpenAI-compatible API, most OpenAI SDK features should work, but some provider-specific features may vary.
+</Callout>
